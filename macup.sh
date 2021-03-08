@@ -1,14 +1,16 @@
 #!/bin/bash
 # update Mac software
 
-printf "${0##*/} \nupdates Mac system software, plus\n" 
+printf "${0##*/} updates Mac system software, plus\n" 
 printf "software and apps managed with Homebrew\n\n"
+
+$QUIET=&>/dev/null
 
 echo "Updating Mac system software ..."
 softwareupdate --all --install
 
 echo "Upgrading tools and apps (casks) tracked by homebrew."
-if type "brew" &>/dev/null; then 
+if test $(which brew); then 
     echo "Checking for brew packages to upgrade ..."
     brew update
     echo "Homebrew packages checked for upgrades:"
@@ -21,7 +23,7 @@ if type "brew" &>/dev/null; then
     brew doctor
     # mas requires homebrew
     echo "Updating Mac App Store (mas) apps ..."
-    if type "mas" &>/dev/null; then
+    if test $(which mas); then
         echo "Mac App Store (mas) apps checked:"
         mas list
         echo "Checking for outdated Mac App Store software ..."
