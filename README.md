@@ -13,4 +13,12 @@ An overview of the scripts: what they do, why you'd want to use them.
 
 ## macup.sh -- update your Mac
 
-This script uses Apple's softwareupdate tool, and [Homebrew, The Missing Package Manager for macOS](https://brew.sh/)
+This script uses Apple's `softwareupdate` tool, and [Homebrew, The Missing Package Manager for macOS](https://brew.sh/), to update all the software on your Mac, including:
+
+* System software (handled by `softwareupdate`)
+* Software tools managed by homebrew
+* Apps managed by the Mac App Store, using the `mas` tool in homebrew
+
+### To Do
+
+* Handle command line arguments for verbose / silent, write log file
