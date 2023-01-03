@@ -3,9 +3,9 @@ Bash scripts for setting up and maintaining your Mac
 
 # Why bash?
 
-You may not use the bash shell on your Mac when you go to the command line -- I prefer fish, and since macOS Catalina, the default shell is zsh. Still, bash is installed on every Mac that runs OS X. As a result, these scripts will run on most every Mac. 
+Maybe you aren't using the bash shell on your Mac when you go to the command line -- I prefer fish myself. Since macOS Catalina, the default shell is zsh. Still, bash is installed on every Mac that runs OS X. As a result, these scripts will run on most every Mac. 
 
-Because of this, I won't use bash commands that aren't available on the standard Mac installation of bash.
+Because of this, I only use bash commands that are available on the standard Mac installation of bash.
 
 # The scripts
 
