@@ -4,6 +4,9 @@
 # ~/.macos — https://mths.be/macos
 # Additional reference: https://macos-defaults.com/
 
+# turn on output for debugging
+set -x
+
 # turn on unoffical bash strict mode
 set -euo pipefail
 IFS=$'\n\t'
