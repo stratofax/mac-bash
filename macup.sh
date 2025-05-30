@@ -1,13 +1,39 @@
 #!/bin/bash
 # update Mac software
 
+usage() {
+    echo "Usage: $0 [-b|--brew]"
+    echo "  -b, --brew    Skip system software update, only run Homebrew updates"
+    exit 1
+}
+
+# Parse command line arguments
+SKIP_SOFTWARE_UPDATE=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -b|--brew)
+            SKIP_SOFTWARE_UPDATE=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
 printf "${0##*/} updates Mac system software, plus\n" 
 printf "software and apps managed with Homebrew\n\n"
 
 $QUIET=&>/dev/null
 
-echo "Updating Mac system software ..."
-softwareupdate --all --install
+if [ "$SKIP_SOFTWARE_UPDATE" = false ]; then
+    echo "Updating Mac system software ..."
+    softwareupdate --all --install
+else
+    echo "Skipping system software update (--brew flag used)"
+fi
 
 echo "Upgrading tools and apps (casks) tracked by homebrew."
 if test $(which brew); then 
@@ -34,4 +60,5 @@ if test $(which brew); then
     fi
 else
     echo "Homebrew unavailable."
+    exit 1
 fi
