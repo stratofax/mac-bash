@@ -26,51 +26,45 @@ Use the `-b` or `--brew` option to skip system software updates and only update 
 ./macup.sh -b
 ```
 
-### start-ssh-agent.sh -- start ssh-agent and load your SSH key
+## Configuration Scripts
 
-This script starts the `ssh-agent` if it's not already running and automatically loads your SSH key. This is particularly useful when connecting to your Mac via a remote session (e.g., SSH), where the ssh-agent may not be running.
+The `config/` directory contains scripts for configuring macOS system settings and third-party applications using the `defaults` command-line tool.
 
-**Important:** This script should be **sourced** (not executed) to ensure the ssh-agent environment variables are set in your current shell:
+### macos-config.sh -- comprehensive macOS configuration
 
-```bash
-source start-ssh-agent.sh
-```
+This extensive script configures hundreds of macOS system preferences across multiple categories:
 
-By default, the script loads `~/.ssh/id_ed25519`. You can specify a different key name using the `-n` option:
+* **General UI/UX** - Interface elements, scrollbars, save/print dialogs, window animations
+* **Trackpad, mouse, keyboard** - Input device settings and keyboard behavior
+* **Energy saving** - Power management and sleep settings
+* **Screen** - Screen saver and display settings
+* **Finder** - File browser preferences, view options, and desktop behavior
+* **Dock, Dashboard, and hot corners** - Dock appearance and screen corner actions
+* **Safari & WebKit** - Browser privacy, security, and behavior settings
+* **Mail** - Email client preferences and spell checking
+* **Terminal & iTerm 2** - Terminal emulator settings
+* **Time Machine** - Backup configuration
+* **Activity Monitor** - System monitoring preferences
+* **Mac App Store** - App Store behavior and automatic updates
+* **Photos** - Photo library and device handling
+* **Messages** - Messaging app preferences
 
-```bash
-source start-ssh-agent.sh -n id_rsa
-```
+Based on [Mathias Bynens' .macos dotfiles](https://mths.be/macos) and [macos-defaults.com](https://macos-defaults.com/).
 
-Consider adding an alias to the remote computer to make this easier:
+### non-apple-config.sh -- third-party app configuration
 
-```bash
-alias ssha='source ~/start-ssh-agent.sh'
-```
+Configures settings for popular third-party applications:
 
-alias ssha='source ~/start-ssh-agent.sh'
+* **Google Chrome** - Disable swipe navigation, configure print dialogs
+* **GPGMail** - Email signing preferences
+* **Opera** - Print dialog settings
+* **Transmission** - BitTorrent client download locations and behavior
 
-### .aliases -- shell aliases for productivity
+### spotlight-config.sh -- Spotlight search configuration
 
-A collection of useful shell aliases adapted from [Mathias Bynens' dotfiles](https://github.com/mathiasbynens/dotfiles). This file provides shortcuts and enhancements for common tasks on macOS.
+Configures macOS Spotlight search functionality:
 
-**Key features:**
-
-* **Navigation shortcuts** - Quick directory navigation (`..`, `...`, `....`) and common locations (`d` for Dropbox, `dl` for Downloads, `dt` for Desktop, `r` for repos)
-* **Enhanced ls commands** - Colorized directory listings with shortcuts (`l`, `la`, `lsd`)
-* **Network utilities** - Get your IP address (`ip`, `localip`), show active interfaces (`ifactive`), flush DNS cache (`flush`)
-* **macOS-specific** - Show/hide hidden files (`show`/`hide`), toggle desktop icons (`showdesktop`/`hidedesktop`), clean up `.DS_Store` files (`cleanup`)
-* **System maintenance** - Empty trash (`emptytrash`), reload shell (`reload`), Spotlight control (`spoton`/`spotoff`)
-* **Developer tools** - Git shortcut (`g`), HTTP method aliases (`GET`, `POST`, etc.), Chrome launcher
-
-**Usage:** Source this file in your shell configuration (`.bashrc`, `.zshrc`, etc.):
-
-```bash
-source ~/.aliases
-```
-
-Or source it directly from this repository:
-
-```bash
-source /path/to/mac-bash/.aliases
-```
+* Disables indexing for external volumes
+* Customizes search result categories and ordering
+* Enables/disables specific search result types
+* Rebuilds the Spotlight index with new settings
