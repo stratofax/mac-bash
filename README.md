@@ -42,7 +42,13 @@ By default, the script loads `~/.ssh/id_ed25519`. You can specify a different ke
 source start-ssh-agent.sh -n id_rsa
 ```
 
-The script will display a warning if the specified key file is not found.
+Consider adding an alias to the remote computer to make this easier:
+
+```bash
+alias ssha='source ~/start-ssh-agent.sh'
+```
+
+alias ssha='source ~/start-ssh-agent.sh'
 
 ### .aliases -- shell aliases for productivity
 
