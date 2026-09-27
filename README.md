@@ -20,25 +20,54 @@ This script uses Apple's `softwareupdate` tool, and [Homebrew, The Missing Packa
 * Software tools managed by homebrew
 * Apps managed by the Mac App Store, using the `mas` tool in homebrew
 
-By default the script runs unattended with no password: it upgrades Homebrew formulae and app-only casks, then lists anything it skipped because it needs an admin password (macOS updates, `.pkg`-based casks, Mac App Store apps).
+#### Requirements
+
+* [Homebrew](https://brew.sh/)
+* `mas` for Mac App Store updates (optional): `brew install mas`
+* `jq`, which ships with macOS at `/usr/bin/jq` (macOS 15 Sequoia and later)
+
+#### Usage
+
+| Command | What it does | Password? |
+| --- | --- | --- |
+| `./macup.sh` | Homebrew formulae and app-only casks; reports everything it skipped | No |
+| `./macup.sh -a` | Everything: macOS updates, all casks, Mac App Store apps | Once, at the start |
+| `./macup.sh -a -b` | Same as `-a`, but skips macOS system updates | Once, at the start |
+
+By default the script runs unattended with no password. It upgrades Homebrew formulae and casks that simply copy an `.app` into place, runs `brew cleanup` and `brew doctor`, then lists anything it skipped because it needs an admin password:
+
+* macOS system updates (checked with `softwareupdate --list`, which needs no password)
+* Casks that use a `.pkg` installer (e.g. Microsoft Teams, Tailscale)
+* Outdated Mac App Store apps (`mas upgrade` requires root)
+
+With `-a` / `--all`, the script asks for your admin password once, keeps the `sudo` session alive for the rest of the run, and installs everything. On Apple Silicon, macOS updates also need volume-owner authentication beyond root, so the script passes the same password to `softwareupdate --stdinpass` rather than prompting a second time. The password is held only in a shell variable and cleared after the system update step.
+
+Major macOS upgrades (e.g. 26 → 27) are always skipped, even with `--all`; install those manually when you're ready.
+
+#### Running on a schedule
+
+`launchd/com.stratofax.macup.plist` runs the default (password-free) mode every day at 02:00 and logs to `~/Library/Logs/macup.log`. If the Mac is asleep at 02:00, the job runs when it next wakes.
+
+The plist sets its own environment, because launchd doesn't read your shell config:
+
+* `PATH` must include `/usr/sbin` (for `softwareupdate`) and `/opt/homebrew/bin`
+* `HOMEBREW_CASK_OPTS` sets the cask install folder (`--appdir=...`). Change or remove it to match the Mac you're installing on.
+
+Install or update the job:
 
 ```bash
-./macup.sh
+cp launchd/com.stratofax.macup.plist ~/Library/LaunchAgents/
+launchctl bootout gui/$(id -u)/com.stratofax.macup 2>/dev/null
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.stratofax.macup.plist
 ```
 
-Use `-a` or `--all` to also install the password-protected updates. The script asks for your admin password once at the start, then runs unattended:
+Check its status and last exit code:
 
 ```bash
-./macup.sh -a
+launchctl print gui/$(id -u)/com.stratofax.macup | grep -E 'state|last exit'
 ```
 
-Add `-b` or `--brew-only` to skip macOS system updates in an `--all` run:
-
-```bash
-./macup.sh -a -b
-```
-
-Major macOS upgrades (e.g. 26 → 27) are always skipped; install those manually when you're ready.
+The plist runs `macup.sh` from this repo's working copy, at the path in `ProgramArguments`. Edit that path if you cloned the repo somewhere else.
 
 ## Configuration Scripts
 
