@@ -1,4 +1,4 @@
-# bash-mac
+# mac-bash
 
 Bash scripts for setting up and maintaining your Mac
 
