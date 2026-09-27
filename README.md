@@ -20,7 +20,9 @@ This script uses Apple's `softwareupdate` tool, and [Homebrew, The Missing Packa
 * Software tools managed by homebrew
 * Apps managed by the Mac App Store, using the `mas` tool in homebrew
 
-Use the `-b` or `--brew` option to skip system software updates and only update Homebrew packages:
+The script asks for your admin password once at the start, then runs unattended. Major macOS upgrades (e.g. 26 → 27) are skipped; install those manually when you're ready.
+
+Use the `-b` or `--brew-only` option to skip system software updates and only update Homebrew packages:
 
 ```bash
 ./macup.sh -b
