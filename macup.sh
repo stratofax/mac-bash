@@ -7,7 +7,7 @@ usage() {
     echo "  -a, --all          Also run updates that need an admin password:"
     echo "                     macOS updates, .pkg-based casks, Mac App Store apps"
     echo "  -b, --brew-only    With --all, skip macOS system updates"
-    exit 1
+    exit "${1:-1}"
 }
 
 printf "${0##*/} updates Mac system software,\n" 
@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            usage
+            usage 0
             ;;
         *)
             echo "Unknown option: $1"
@@ -51,7 +51,8 @@ fi
 SKIPPED=()
 
 if [ "$RUN_ALL" = true ]; then
-    echo "Admin password needed once for system, cask, and App Store updates."
+    echo "Admin password needed for system and App Store updates."
+    echo "  (Homebrew resets sudo on every run, so .pkg casks may ask again.)"
     read -r -s -p "Password for $USER: " ADMIN_PASS
     echo
     sudo -k  # drop any cached credential so the typed password is actually verified
@@ -61,6 +62,7 @@ if [ "$RUN_ALL" = true ]; then
     fi
     # Refresh the sudo timestamp so long upgrades don't hit the 5-minute timeout
     while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+    KEEPALIVE_PID=$!
 fi
 
 if [ "$RUN_ALL" = true ] && [ "$SKIP_SOFTWARE_UPDATE" = true ]; then
@@ -110,6 +112,28 @@ else
 fi
 unset ADMIN_PASS
 
+# Runs before any brew command: brew.sh resets the sudo timestamp on every invocation
+printf "\nUpdating Mac App Store (mas) apps ...\n"
+if command -v mas >/dev/null; then
+    echo "Mac App Store (mas) apps checked:"
+    mas list
+    echo "Checking for outdated Mac App Store software ..."
+    if [ "$RUN_ALL" = true ]; then
+        mas outdated
+        sudo mas upgrade
+    else
+        while IFS= read -r app; do
+            [ -n "$app" ] && SKIPPED+=("App Store: $app")
+        done < <(mas outdated)
+    fi
+else
+    echo "Homebrew tool mas (Mac App Store) unavailable"
+    echo "Install with:"
+    echo "  brew install mas"
+fi
+
+[ -n "${KEEPALIVE_PID:-}" ] && kill "$KEEPALIVE_PID" 2>/dev/null
+
 printf "\nUpgrading tools and apps (casks) tracked by homebrew ...\n"
 if command -v brew >/dev/null; then
     echo "Homebrew found. Checking for brew packages to upgrade ..."
@@ -122,20 +146,36 @@ if command -v brew >/dev/null; then
         echo "Upgrading out-of-date casks ..."
         brew upgrade --cask --yes
     else
-        # Casks with pkg/installer artifacts run system installers that need a password
+        # Casks need a password if they run a pkg/installer, or if the installed
+        # .app isn't writable by us (e.g. a self-updater changed it to root)
         app_casks=()
+        appdir=$(printf '%s' "${HOMEBREW_CASK_OPTS:-}" | sed -n 's/.*--appdir=\([^ ]*\).*/\1/p')
+        appdir=${appdir:-/Applications}
         outdated_casks=$(brew outdated --cask -q)
         if [ -n "$outdated_casks" ]; then
-            while IFS=$'\t' read -r kind token; do
+            while IFS=$'\t' read -r kind token apps; do
                 [ -z "$token" ] && continue
-                if [ "$kind" = "pkg" ]; then
-                    SKIPPED+=("Homebrew cask (.pkg installer): $token")
-                else
-                    app_casks+=("$token")
+                if [ "$kind" = "app" ] && [ -n "$apps" ]; then
+                    IFS='|' read -r -a app_names <<< "$apps"
+                    for app_name in "${app_names[@]}"; do
+                        for dir in "$appdir" /Applications; do
+                            if [ -e "$dir/$app_name" ] && [ ! -w "$dir/$app_name" ]; then
+                                kind="readonly"
+                            fi
+                        done
+                    done
                 fi
+                case "$kind" in
+                    pkg) SKIPPED+=("Homebrew cask (.pkg installer): $token") ;;
+                    readonly) SKIPPED+=("Homebrew cask (installed app not writable): $token") ;;
+                    *) app_casks+=("$token") ;;
+                esac
             done < <(brew info --cask --json=v2 $outdated_casks | /usr/bin/jq -r '.casks[] |
                 (if any(.artifacts[]; has("pkg") or has("installer")) then "pkg" else "app" end)
-                + "\t" + .full_token')
+                + "\t" + .full_token + "\t"
+                + ([.artifacts[] | .app? // empty | .[]
+                    | (if type == "string" then . else (.target? // empty) end)
+                    | split("/") | last] | join("|"))')
         fi
         if [ ${#app_casks[@]} -gt 0 ]; then
             echo "Upgrading out-of-date casks: ${app_casks[*]}"
@@ -146,25 +186,6 @@ if command -v brew >/dev/null; then
     brew cleanup
     echo "Cleanup complete. Time for a checkup ..."
     brew doctor
-    # mas requires homebrew
-    printf "\nUpdating Mac App Store (mas) apps ...\n"
-    if command -v mas >/dev/null; then
-        echo "Mac App Store (mas) apps checked:"
-        mas list
-        echo "Checking for outdated Mac App Store software ..."
-        if [ "$RUN_ALL" = true ]; then
-            mas outdated
-            sudo mas upgrade
-        else
-            while IFS= read -r app; do
-                [ -n "$app" ] && SKIPPED+=("App Store: $app")
-            done < <(mas outdated)
-        fi
-    else
-        echo "Homebrew tool mas (Mac App Store) unavailable"
-        echo "Install with:"
-        echo "  brew install mas"
-    fi
 else
     echo "Homebrew unavailable"
     echo "Visit https://brew.sh/ to install"

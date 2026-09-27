@@ -31,16 +31,19 @@ This script uses Apple's `softwareupdate` tool, and [Homebrew, The Missing Packa
 | Command | What it does | Password? |
 | --- | --- | --- |
 | `./macup.sh` | Homebrew formulae and app-only casks; reports everything it skipped | No |
-| `./macup.sh -a` | Everything: macOS updates, all casks, Mac App Store apps | Once, at the start |
-| `./macup.sh -a -b` | Same as `-a`, but skips macOS system updates | Once, at the start |
+| `./macup.sh -a` | Everything: macOS updates, all casks, Mac App Store apps | At the start, plus Homebrew's own prompts |
+| `./macup.sh -a -b` | Same as `-a`, but skips macOS system updates | At the start, plus Homebrew's own prompts |
 
 By default the script runs unattended with no password. It upgrades Homebrew formulae and casks that simply copy an `.app` into place, runs `brew cleanup` and `brew doctor`, then lists anything it skipped because it needs an admin password:
 
 * macOS system updates (checked with `softwareupdate --list`, which needs no password)
 * Casks that use a `.pkg` installer (e.g. Microsoft Teams, Tailscale)
+* Casks whose installed `.app` isn't writable by you (e.g. Google Chrome after its own updater changes the owner to root)
 * Outdated Mac App Store apps (`mas upgrade` requires root)
 
-With `-a` / `--all`, the script asks for your admin password once, keeps the `sudo` session alive for the rest of the run, and installs everything. On Apple Silicon, macOS updates also need volume-owner authentication beyond root, so the script passes the same password to `softwareupdate --stdinpass` rather than prompting a second time. The password is held only in a shell variable and cleared after the system update step.
+With `-a` / `--all`, the script asks for your admin password at the start and uses it for macOS updates and Mac App Store apps. On Apple Silicon, macOS updates also need volume-owner authentication beyond root, so the script passes the same password to `softwareupdate --stdinpass` rather than prompting a second time. The password is held only in a shell variable and cleared after the system update step.
+
+Homebrew resets the `sudo` timestamp every time `brew` runs, a deliberate security measure so that scripts Homebrew runs can't reuse your cached credentials. The script therefore does all of its own `sudo` work before the first `brew` command. Homebrew then asks for your password itself for any cask that needs it, usually once per `brew` command that needs admin rights.
 
 Major macOS upgrades (e.g. 26 → 27) are always skipped, even with `--all`; install those manually when you're ready.
 
