@@ -20,13 +20,25 @@ This script uses Apple's `softwareupdate` tool, and [Homebrew, The Missing Packa
 * Software tools managed by homebrew
 * Apps managed by the Mac App Store, using the `mas` tool in homebrew
 
-The script asks for your admin password once at the start, then runs unattended. Major macOS upgrades (e.g. 26 → 27) are skipped; install those manually when you're ready.
-
-Use the `-b` or `--brew-only` option to skip system software updates and only update Homebrew packages:
+By default the script runs unattended with no password: it upgrades Homebrew formulae and app-only casks, then lists anything it skipped because it needs an admin password (macOS updates, `.pkg`-based casks, Mac App Store apps).
 
 ```bash
-./macup.sh -b
+./macup.sh
 ```
+
+Use `-a` or `--all` to also install the password-protected updates. The script asks for your admin password once at the start, then runs unattended:
+
+```bash
+./macup.sh -a
+```
+
+Add `-b` or `--brew-only` to skip macOS system updates in an `--all` run:
+
+```bash
+./macup.sh -a -b
+```
+
+Major macOS upgrades (e.g. 26 → 27) are always skipped; install those manually when you're ready.
 
 ## Configuration Scripts
 
