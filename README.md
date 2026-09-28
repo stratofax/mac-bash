@@ -55,6 +55,7 @@ The plist sets its own environment, because launchd doesn't read your shell conf
 
 * `PATH` must include `/usr/sbin` (for `softwareupdate`) and `/opt/homebrew/bin`
 * `HOMEBREW_CASK_OPTS` sets the cask install folder (`--appdir=...`). Change or remove it to match the Mac you're installing on.
+* `MACUP_LOG` must match `StandardOutPath`. When the log passes 1 MB, the script renames it to `macup.log.1`, replacing any older copy, so the logs never take more than about 2 MB. The run that does the rename finishes writing in `macup.log.1`, and the next run starts a fresh `macup.log`.
 
 Install or update the job:
 

@@ -43,6 +43,14 @@ fi
 
 echo "macOS detected,"
 
+# Keep the scheduled-run log bounded (MACUP_LOG is set by the launchd plist).
+# Rename rather than truncate: launchd holds the file open, so this run finishes
+# in the .1 file and the next run starts a fresh log.
+if [ -n "${MACUP_LOG:-}" ] && [ -f "$MACUP_LOG" ] &&
+   [ "$(stat -f %z "$MACUP_LOG")" -gt 1048576 ]; then
+    mv -f "$MACUP_LOG" "$MACUP_LOG.1"
+fi
+
 if [ "$SKIP_SOFTWARE_UPDATE" = true ] && [ "$RUN_ALL" = false ]; then
     echo "Note: -b/--brew-only has no effect without -a/--all"
 fi
