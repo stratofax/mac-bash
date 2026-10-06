@@ -54,7 +54,6 @@ Major macOS upgrades (e.g. 26 → 27) are always skipped, even with `--all`; ins
 The plist sets its own environment, because launchd doesn't read your shell config:
 
 * `PATH` must include `/usr/sbin` (for `softwareupdate`) and `/opt/homebrew/bin`
-* `HOMEBREW_CASK_OPTS` sets the cask install folder (`--appdir=...`). Change or remove it to match the Mac you're installing on.
 * `MACUP_LOG` must match `StandardOutPath`. When the log passes 1 MB, the script renames it to `macup.log.1`, replacing any older copy, so the logs never take more than about 2 MB. The run that does the rename finishes writing in `macup.log.1`, and the next run starts a fresh `macup.log`.
 
 Install or update the job:
@@ -73,9 +72,19 @@ launchctl print gui/$(id -u)/com.stratofax.macup | grep -E 'state|last exit'
 
 The plist runs `macup.sh` from this repo's working copy, at the path in `ProgramArguments`. Edit that path if you cloned the repo somewhere else.
 
+#### Choosing where casks install
+
+The plist is the same on every Mac. To install cask apps somewhere other than `/Applications` on one Mac, set `HOMEBREW_CASK_OPTS` in that Mac's `~/.homebrew/brew.env` (or `$XDG_CONFIG_HOME/homebrew/brew.env` if `XDG_CONFIG_HOME` is set):
+
+```text
+HOMEBREW_CASK_OPTS=--appdir=/Volumes/External/Apps
+```
+
+Homebrew reads this file in every context, including launchd jobs (see `man brew`, "brew.env"), and `macup.sh` reads it too. A `HOMEBREW_CASK_OPTS` already set in the environment takes precedence. Macs with no `brew.env` use `/Applications`.
+
 #### Keeping apps off the boot volume
 
-If `HOMEBREW_CASK_OPTS` points `--appdir` somewhere other than `/Applications`, each run ends by listing any app in `/Applications` that shouldn't be there, and posts a macOS notification if it finds one. Mac App Store apps and Safari are always allowed. To keep any other app in `/Applications` (for example, one with a system extension or a privileged helper), add its name to `~/.config/macup/applications-allowlist`, one per line:
+If the cask install folder (see above) is somewhere other than `/Applications`, each run ends by listing any app in `/Applications` that shouldn't be there, and posts a macOS notification if it finds one. Mac App Store apps and Safari are always allowed. To keep any other app in `/Applications` (for example, one with a system extension or a privileged helper), add its name to `~/.config/macup/applications-allowlist`, one per line:
 
 ```text
 1Password.app

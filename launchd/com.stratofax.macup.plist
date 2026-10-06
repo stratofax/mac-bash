@@ -23,8 +23,6 @@
     <dict>
         <key>PATH</key>
         <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-        <key>HOMEBREW_CASK_OPTS</key>
-        <string>--appdir=/Volumes/990Pro2TB/Apps</string>
         <key>MACUP_LOG</key>
         <string>/Users/neil/Library/Logs/macup.log</string>
     </dict>
