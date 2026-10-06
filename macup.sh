@@ -43,6 +43,23 @@ fi
 
 echo "macOS detected,"
 
+# Where casks install apps: $HOMEBREW_CASK_OPTS if set, else the per-Mac
+# brew.env file Homebrew itself reads (see `man brew`), else /Applications
+cask_appdir() {
+    local opts=${HOMEBREW_CASK_OPTS:-} env_file dir
+    if [ -z "$opts" ]; then
+        if [ -n "${XDG_CONFIG_HOME:-}" ]; then
+            env_file="$XDG_CONFIG_HOME/homebrew/brew.env"
+        else
+            env_file="$HOME/.homebrew/brew.env"
+        fi
+        [ -r "$env_file" ] && opts=$(sed -n 's/^HOMEBREW_CASK_OPTS=//p' "$env_file" | tail -n 1)
+    fi
+    dir=$(printf '%s' "$opts" | sed -n 's/.*--appdir=\([^ ]*\).*/\1/p')
+    echo "${dir:-/Applications}"
+}
+APPDIR=$(cask_appdir)
+
 # Keep the scheduled-run log bounded (MACUP_LOG is set by the launchd plist).
 # Rename rather than truncate: launchd holds the file open, so this run finishes
 # in the .1 file and the next run starts a fresh log.
@@ -157,8 +174,6 @@ if command -v brew >/dev/null; then
         # Casks need a password if they run a pkg/installer, or if the installed
         # .app isn't writable by us (e.g. a self-updater changed it to root)
         app_casks=()
-        appdir=$(printf '%s' "${HOMEBREW_CASK_OPTS:-}" | sed -n 's/.*--appdir=\([^ ]*\).*/\1/p')
-        appdir=${appdir:-/Applications}
         outdated_casks=$(brew outdated --cask -q)
         if [ -n "$outdated_casks" ]; then
             while IFS=$'\t' read -r kind token apps; do
@@ -166,7 +181,7 @@ if command -v brew >/dev/null; then
                 if [ "$kind" = "app" ] && [ -n "$apps" ]; then
                     IFS='|' read -r -a app_names <<< "$apps"
                     for app_name in "${app_names[@]}"; do
-                        for dir in "$appdir" /Applications; do
+                        for dir in "$APPDIR" /Applications; do
                             if [ -e "$dir/$app_name" ] && [ ! -w "$dir/$app_name" ]; then
                                 kind="readonly"
                             fi
@@ -204,8 +219,7 @@ fi
 # App Store apps and Safari belong there; anything else must be allowlisted.
 DRIFTED=()
 allowlist="$HOME/.config/macup/applications-allowlist"
-cask_appdir=$(printf '%s' "${HOMEBREW_CASK_OPTS:-}" | sed -n 's/.*--appdir=\([^ ]*\).*/\1/p')
-if [ -n "$cask_appdir" ] && [ "$cask_appdir" != "/Applications" ]; then
+if [ "$APPDIR" != "/Applications" ]; then
     for app in /Applications/*.app; do
         name=${app##*/}
         [ "$name" = "Safari.app" ] && continue
@@ -216,7 +230,7 @@ if [ -n "$cask_appdir" ] && [ "$cask_appdir" != "/Applications" ]; then
 fi
 
 if [ ${#DRIFTED[@]} -gt 0 ]; then
-    printf "\nApps in /Applications that belong in %s:\n" "$cask_appdir"
+    printf "\nApps in /Applications that belong in %s:\n" "$APPDIR"
     printf '  %s\n' "${DRIFTED[@]}"
     echo "Move them, or add their names to $allowlist to keep them."
     osascript -e "display notification \"${#DRIFTED[@]} app(s) drifted into /Applications\" with title \"macup\"" 2>/dev/null
