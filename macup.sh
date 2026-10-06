@@ -200,6 +200,28 @@ else
     exit 1
 fi
 
+# When casks install elsewhere, flag apps that drifted into /Applications.
+# App Store apps and Safari belong there; anything else must be allowlisted.
+DRIFTED=()
+allowlist="$HOME/.config/macup/applications-allowlist"
+cask_appdir=$(printf '%s' "${HOMEBREW_CASK_OPTS:-}" | sed -n 's/.*--appdir=\([^ ]*\).*/\1/p')
+if [ -n "$cask_appdir" ] && [ "$cask_appdir" != "/Applications" ]; then
+    for app in /Applications/*.app; do
+        name=${app##*/}
+        [ "$name" = "Safari.app" ] && continue
+        [ -d "$app/Contents/_MASReceipt" ] && continue
+        [ -f "$allowlist" ] && grep -qxF "$name" "$allowlist" && continue
+        DRIFTED+=("$name")
+    done
+fi
+
+if [ ${#DRIFTED[@]} -gt 0 ]; then
+    printf "\nApps in /Applications that belong in %s:\n" "$cask_appdir"
+    printf '  %s\n' "${DRIFTED[@]}"
+    echo "Move them, or add their names to $allowlist to keep them."
+    osascript -e "display notification \"${#DRIFTED[@]} app(s) drifted into /Applications\" with title \"macup\"" 2>/dev/null
+fi
+
 if [ ${#SKIPPED[@]} -gt 0 ]; then
     printf "\nSkipped (need an admin password):\n"
     printf '  %s\n' "${SKIPPED[@]}"
